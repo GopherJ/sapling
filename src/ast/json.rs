@@ -80,24 +80,33 @@ impl<'arena> Ast<'arena> for JSON<'arena> {
     ) -> Vec<RecTok<'arena, Self>> {
         let is_pretty = format_style == &JSONFormat::Pretty;
         match self {
-            JSON::True => vec![RecTok::Tok(DisplayToken::Text("true".to_string()))],
-            JSON::False => vec![RecTok::Tok(DisplayToken::Text("false".to_string()))],
-            JSON::Null => vec![RecTok::Tok(DisplayToken::Text("null".to_string()))],
-            JSON::Str(string) => vec![RecTok::Tok(DisplayToken::Text(format!(r#""{}""#, string)))],
+            JSON::True => vec![RecTok::Tok(DisplayToken::Text("true".to_string(), "const"))],
+            JSON::False => vec![RecTok::Tok(DisplayToken::Text(
+                "false".to_string(),
+                "const",
+            ))],
+            JSON::Null => vec![RecTok::Tok(DisplayToken::Text(
+                "null".to_string(),
+                "keyword",
+            ))],
+            JSON::Str(string) => vec![RecTok::Tok(DisplayToken::Text(
+                format!(r#""{}""#, string),
+                "literal",
+            ))],
             JSON::Field([key, value]) => vec![
                 RecTok::Child(key),
-                RecTok::Tok(DisplayToken::Text(": ".to_string())),
+                RecTok::Tok(DisplayToken::Text(": ".to_string(), "default")),
                 RecTok::Child(value),
             ],
             JSON::Array(children) => {
                 // Special case: if this array is empty, render it as '[]'
                 if children.is_empty() {
-                    return vec![RecTok::Tok(DisplayToken::Text("[]".to_string()))];
+                    return vec![RecTok::Tok(DisplayToken::Text("[]".to_string(), "default"))];
                 }
 
                 let mut tokens: Vec<RecTok<'_, Self>> = Vec::with_capacity(6 + 3 * children.len());
                 // Push some initial tokens
-                tokens.push(RecTok::Tok(DisplayToken::Text("[".to_string())));
+                tokens.push(RecTok::Tok(DisplayToken::Text("[".to_string(), "default")));
                 if is_pretty {
                     tokens.push(RecTok::Tok(DisplayToken::Indent));
                     tokens.push(RecTok::Tok(DisplayToken::Newline));
@@ -107,7 +116,7 @@ impl<'arena> Ast<'arena> for JSON<'arena> {
                 for c in children {
                     // Push the delimiting
                     if !is_first_child {
-                        tokens.push(RecTok::Tok(DisplayToken::Text(",".to_string())));
+                        tokens.push(RecTok::Tok(DisplayToken::Text(",".to_string(), "default")));
                         if is_pretty {
                             tokens.push(RecTok::Tok(DisplayToken::Newline));
                         } else {
@@ -123,19 +132,19 @@ impl<'arena> Ast<'arena> for JSON<'arena> {
                     tokens.push(RecTok::Tok(DisplayToken::Dedent));
                     tokens.push(RecTok::Tok(DisplayToken::Newline));
                 }
-                tokens.push(RecTok::Tok(DisplayToken::Text("]".to_string())));
+                tokens.push(RecTok::Tok(DisplayToken::Text("]".to_string(), "default")));
                 // Return the token stream
                 tokens
             }
             JSON::Object(fields) => {
                 // Special case: if this object is empty, render it as '{}'
                 if fields.is_empty() {
-                    return vec![RecTok::Tok(DisplayToken::Text("{}".to_string()))];
+                    return vec![RecTok::Tok(DisplayToken::Text("{}".to_string(), "default"))];
                 }
 
                 let mut tokens: Vec<RecTok<'_, Self>> = Vec::with_capacity(6 + 3 * fields.len());
                 // Push some initial tokens
-                tokens.push(RecTok::Tok(DisplayToken::Text("{".to_string())));
+                tokens.push(RecTok::Tok(DisplayToken::Text("{".to_string(), "default")));
                 if is_pretty {
                     tokens.push(RecTok::Tok(DisplayToken::Indent));
                     tokens.push(RecTok::Tok(DisplayToken::Newline));
@@ -145,7 +154,7 @@ impl<'arena> Ast<'arena> for JSON<'arena> {
                 for f in fields {
                     // Push the delimiting
                     if !is_first_child {
-                        tokens.push(RecTok::Tok(DisplayToken::Text(",".to_string())));
+                        tokens.push(RecTok::Tok(DisplayToken::Text(",".to_string(), "default")));
                         if is_pretty {
                             tokens.push(RecTok::Tok(DisplayToken::Newline));
                         } else {
@@ -161,7 +170,7 @@ impl<'arena> Ast<'arena> for JSON<'arena> {
                     tokens.push(RecTok::Tok(DisplayToken::Dedent));
                     tokens.push(RecTok::Tok(DisplayToken::Newline));
                 }
-                tokens.push(RecTok::Tok(DisplayToken::Text("}".to_string())));
+                tokens.push(RecTok::Tok(DisplayToken::Text("}".to_string(), "default")));
                 // Return the token stream
                 tokens
             }

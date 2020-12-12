@@ -4,6 +4,7 @@ pub mod normal_mode;
 
 use crate::ast::display_token::DisplayToken;
 use crate::ast::{size, Ast};
+use crate::config::{ColorScheme, DEBUG_HIGHLIGHTING};
 use crate::editable_tree::{EditResult, LogMessage, DAG};
 use normal_mode::{keystroke_log, parse_keystroke, KeyMap};
 use std::collections::hash_map::DefaultHasher;
@@ -22,6 +23,8 @@ pub struct Editor<'arena, Node: Ast<'arena>> {
     keystroke: String,
     /// The configured key map
     keymap: KeyMap,
+    /// The configured colour scheme
+    color_scheme: ColorScheme,
     /// A list of the keystrokes that have been executed, along with a summary of what they mean
     keystroke_log: keystroke_log::KeyStrokeLog,
 }
@@ -32,6 +35,7 @@ impl<'arena, Node: Ast<'arena> + 'arena> Editor<'arena, Node> {
         tree: &'arena mut DAG<'arena, Node>,
         format_style: Node::FormatStyle,
         keymap: KeyMap,
+        color_scheme: ColorScheme,
     ) -> Editor<'arena, Node> {
         let term = Term::new().unwrap();
         Editor {
@@ -40,6 +44,7 @@ impl<'arena, Node: Ast<'arena> + 'arena> Editor<'arena, Node> {
             format_style,
             keystroke: String::new(),
             keymap,
+            color_scheme,
             keystroke_log: keystroke_log::KeyStrokeLog::new(10),
         }
     }
@@ -100,13 +105,18 @@ impl<'arena, Node: Ast<'arena> + 'arena> Editor<'arena, Node> {
 
         for (node, tok) in self.tree.root().display_tokens(&self.format_style) {
             match tok {
-                DisplayToken::Text(s) => {
-                    // Hash the ref to decide on the colour
-                    let col = {
+                DisplayToken::Text(s, category) => {
+                    let col = if DEBUG_HIGHLIGHTING {
+                        // Hash the ref to decide on the colour
                         let mut hasher = DefaultHasher::new();
                         node.hash(&mut hasher);
                         let hash = hasher.finish();
                         cols[hash as usize % cols.len()]
+                    } else {
+                        *self
+                            .color_scheme
+                            .get(category)
+                            .unwrap_or(&Color::LIGHT_MAGENTA)
                     };
                     // Generate the display attributes depending on if the node is selected
                     let attr = if std::ptr::eq(node, self.tree.cursor()) {
